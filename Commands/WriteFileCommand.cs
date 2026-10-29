@@ -1,11 +1,14 @@
 ﻿using CodingAgent.Interfaces;
+using Microsoft.Extensions.Configuration;
 using System.Text;
 using System.Text.Json;
 
 namespace CodingAgent.Commands;
 
-internal class WriteFileCommand : Command, IToolCommand
+internal class WriteFileCommand(IConfiguration configuration) : Command, IToolCommand
 {
+    private readonly bool backup = configuration.GetValue("CodingAgent:WriteFile:Backup", false);
+
     public async Task<string> ExecuteAsync(JsonElement args, ICodingLanguageService codingLanguageService)
     {
         var relativePath = GetString(args, "path", GetString(args, "file_path"));
@@ -17,7 +20,7 @@ internal class WriteFileCommand : Command, IToolCommand
         var exists = File.Exists(file);
         var oldText = exists ? await File.ReadAllTextAsync(file) : String.Empty;
 
-        if (exists)
+        if (exists && backup)
         {
             var backupRoot = Path.Combine(codingLanguageService.Root, ".codingagent-backups", DateTime.Now.ToString("yyyyMMdd-HHmmss-fff"));
             var backupPath = Path.Combine(backupRoot, ToRelativePath(codingLanguageService.Root, file));
@@ -30,5 +33,3 @@ internal class WriteFileCommand : Command, IToolCommand
                (exists ? " The old version saved into .codingagent-backups folder." : String.Empty);
     }
 }
-
-

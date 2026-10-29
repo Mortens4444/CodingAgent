@@ -6,27 +6,24 @@ internal class CSharpCodingLanguageService(string root, string projectFile) : La
 {
     private readonly string projectFile = projectFile;
 
-    public Task<string> BuildAsync()
-    {
-        return RunDotnetAsync("build");
-    }
+    public Task<string> BuildAsync() => RunDotnetAsync("build", "--configuration", "Release", "--no-incremental", "-warnaserror");
 
-    public Task<string> RunTestsAsync()
-    {
-        return RunDotnetAsync("test");
-    }
+    public Task<string> RunTestsAsync() => RunDotnetAsync("test");
 
-    public Task<string> ValidateSyntaxAsync()
-    {
-        return Task.FromResult(String.Empty);
-    }
+    public Task<string> ValidateSyntaxAsync() => Task.FromResult(String.Empty);
 
-    private Task<string> RunDotnetAsync(string command)
+    private Task<string> RunDotnetAsync(string command, params string[] options)
     {
         var args = new List<string> { command };
+        args.AddRange(options);
+
         if (!String.IsNullOrWhiteSpace(projectFile))
             args.Add(projectFile);
 
-        return RunProcessAsync("dotnet", Root, args, $"dotnet {command} {projectFile}".Trim());
+        return RunProcessAsync(
+            "dotnet",
+            Root,
+            args,
+            $"dotnet {String.Join(" ", args)}");
     }
 }
