@@ -1,6 +1,6 @@
 ﻿using CodingAgent.Interfaces;
 
-namespace CodingAgent.Services;
+namespace CodingAgent.Services.ToDo;
 
 internal class AskUserForTask : IToDoProvider
 {

@@ -9,7 +9,6 @@ internal class ProjectITypedentifier
         ".tox", "dist", "build"
     };
 
-
     public (string Root, string ProjectFile, string ProjectKind) ResolveProject(string target)
     {
         var fullTarget = Path.GetFullPath(target);
@@ -38,11 +37,11 @@ internal class ProjectITypedentifier
             }
 
             throw new InvalidOperationException(
-                "Fájlként .sln, .slnx, .csproj, Python projektleíró vagy .py fájl adható meg. Egyébként a projekt mappáját add meg.");
+                "You can specify an .sln, .slnx, or .csproj file, a Python project description file, or a .py file. Otherwise, specify the project folder.");
         }
 
         if (!Directory.Exists(fullTarget))
-            throw new DirectoryNotFoundException($"A megadott útvonal nem található: {fullTarget}");
+            throw new DirectoryNotFoundException($"The specified route cannot be found: {fullTarget}");
 
         var solutions = Directory.GetFiles(fullTarget, "*.sln", SearchOption.TopDirectoryOnly)
             .Concat(Directory.GetFiles(fullTarget, "*.slnx", SearchOption.TopDirectoryOnly))
@@ -51,7 +50,7 @@ internal class ProjectITypedentifier
         if (solutions.Length > 1)
         {
             throw new InvalidOperationException(
-                "Több solution fájl található. Add meg közvetlenül a használni kívánt .sln/.slnx fájl útvonalát: " +
+                "Multiple solution files found. Please specify the path of the .sln/.slnx file you want to use:" +
                 String.Join(", ", solutions.Select(Path.GetFileName)));
         }
 

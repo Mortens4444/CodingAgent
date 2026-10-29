@@ -2,7 +2,7 @@
 using Microsoft.Extensions.AI;
 using OllamaSharp;
 
-namespace CodingAgent.Services;
+namespace CodingAgent.Services.ChatClient;
 
 internal class ChatClientProvider : IChatClientProvider
 {
