@@ -5,7 +5,7 @@ using OllamaSharp;
 
 namespace CodingAgent.Services.ChatClient;
 
-internal static class ChatClientFactory
+public static class ChatClientFactory
 {
     public static IChatClient Get(string uri, ChatClientType chatClientType = ChatClientType.Qwen2_5_coder_14b, int timeoutInMinutes = 10)
     {

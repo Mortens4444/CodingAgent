@@ -1,6 +1,6 @@
 ﻿namespace CodingAgent.Services;
 
-internal static class ToolCatalog
+public static class ToolCatalog
 {
     private static readonly string[] supportedToolNames =
     [

@@ -2,7 +2,7 @@
 
 namespace CodingAgent.Services.ToDo;
 
-internal class AskUserForTask : IToDoProvider
+public class AskUserForTask : IToDoProvider
 {
     public async Task<string?> GetToDoAsync(string? todoPath = null)
     {

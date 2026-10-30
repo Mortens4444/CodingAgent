@@ -1,6 +1,6 @@
 ﻿namespace CodingAgent;
 
-internal static  class Constants
+public static  class Constants
 {
     public const int MaxLength = 120000;
 

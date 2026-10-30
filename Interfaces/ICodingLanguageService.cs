@@ -1,6 +1,6 @@
 ﻿namespace CodingAgent.Interfaces;
 
-internal interface ICodingLanguageService
+public interface ICodingLanguageService
 {
     string Root { get; }
 

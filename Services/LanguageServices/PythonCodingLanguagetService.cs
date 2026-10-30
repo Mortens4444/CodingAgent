@@ -3,7 +3,7 @@ using System.ComponentModel;
 
 namespace CodingAgent.Services.LanguageServices;
 
-internal class PythonCodingLanguagetService(string root) : LanguageService(root), ICodingLanguageService
+public class PythonCodingLanguagetService(string root) : LanguageService(root), ICodingLanguageService
 {
     public async Task<string> BuildAsync()
     {

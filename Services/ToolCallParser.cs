@@ -2,9 +2,9 @@
 
 namespace CodingAgent.Services;
 
-internal sealed record ParsedAction(string Name, JsonElement Arguments);
+public sealed record ParsedAction(string Name, JsonElement Arguments);
 
-internal static class ToolCallParser
+public static class ToolCallParser
 {
     private static readonly string[] ArgumentNames =
     {

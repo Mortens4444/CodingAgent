@@ -2,7 +2,7 @@
 
 namespace CodingAgent.Interfaces;
 
-internal interface IToolCommand
+public interface IToolCommand
 {
     Task<string> ExecuteAsync(JsonElement args, ICodingLanguageService codingLanguageService);
 }

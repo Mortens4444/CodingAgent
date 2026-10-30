@@ -3,7 +3,7 @@ using System.Text.Json;
 
 namespace CodingAgent.Commands;
 
-internal class CheckForMissingFilesCommand : Command, IToolCommand
+public class CheckForMissingFilesCommand : Command, IToolCommand
 {
     public async Task<string> ExecuteAsync(JsonElement args, ICodingLanguageService codingLanguageService)
     {

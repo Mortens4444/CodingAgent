@@ -3,7 +3,7 @@ using System.Diagnostics;
 
 namespace CodingAgent.Services.LanguageServices;
 
-internal class LanguageService(string root)
+public class LanguageService(string root)
 {
     public string Root { get; } = root;
 

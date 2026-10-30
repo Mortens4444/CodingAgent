@@ -2,7 +2,7 @@
 
 namespace CodingAgent.Services.ToDo;
 
-internal class ToDoFileReader : IToDoProvider
+public class ToDoFileReader : IToDoProvider
 {
     public async Task<string?> GetToDoAsync(string? todoPath = null)
     {

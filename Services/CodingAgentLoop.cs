@@ -5,7 +5,7 @@ using System.Text.Json;
 
 namespace CodingAgent.Services;
 
-internal sealed class CodingAgentLoop(IChatClient chatClient, ToolDispatcher toolDispatcher)
+public sealed class CodingAgentLoop(IChatClient chatClient, ToolDispatcher toolDispatcher)
 {
     private readonly IChatClient chatClient = chatClient;
     private readonly ToolDispatcher toolDispatcher = toolDispatcher;

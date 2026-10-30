@@ -1,6 +1,9 @@
-﻿namespace CodingAgent.Services;
+﻿using CodingAgent.Dto;
+using CodingAgent.Enums;
 
-internal class ProjectITypedentifier
+namespace CodingAgent.Services;
+
+public class ProjectITypedentifier
 {
     public static readonly HashSet<string> ExcludedDirectories = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -9,7 +12,7 @@ internal class ProjectITypedentifier
         ".tox", "dist", "build"
     };
 
-    public (string Root, string ProjectFile, string ProjectKind) ResolveProject(string target)
+    public ResolvedProject ResolveProject(string target)
     {
         var fullTarget = Path.GetFullPath(target);
         if (File.Exists(fullTarget))
@@ -22,7 +25,7 @@ internal class ProjectITypedentifier
                 extension.Equals(".slnx", StringComparison.OrdinalIgnoreCase) ||
                 extension.Equals(".csproj", StringComparison.OrdinalIgnoreCase))
             {
-                return (parent, fileName, "dotnet");
+                return new ResolvedProject(parent, fileName, ProgrammingLanguage.CSharp);
             }
 
             if (fileName.Equals("pyproject.toml", StringComparison.OrdinalIgnoreCase) ||
@@ -33,7 +36,7 @@ internal class ProjectITypedentifier
                 extension.Equals(".py", StringComparison.OrdinalIgnoreCase) ||
                 extension.Equals(".pyw", StringComparison.OrdinalIgnoreCase))
             {
-                return (parent, String.Empty, "python");
+                return new ResolvedProject(parent, String.Empty, ProgrammingLanguage.Python);
             }
 
             throw new InvalidOperationException(
@@ -55,13 +58,13 @@ internal class ProjectITypedentifier
         }
 
         if (solutions.Length == 1)
-            return (fullTarget, Path.GetFileName(solutions[0]), "dotnet");
+            return new ResolvedProject(fullTarget, Path.GetFileName(solutions[0]), ProgrammingLanguage.CSharp);
 
         var projectKind = DetectProjectKind(fullTarget, out var projectFile);
-        return (fullTarget, projectFile, projectKind);
+        return new ResolvedProject(fullTarget, projectFile, projectKind);
     }
 
-    private static string DetectProjectKind(string root, out string projectFile)
+    private static ProgrammingLanguage DetectProjectKind(string root, out string projectFile)
     {
         projectFile = String.Empty;
         var pending = new Stack<string>();
@@ -103,14 +106,14 @@ internal class ProjectITypedentifier
         }
 
         if (pythonFile)
-            return "python";
+            return ProgrammingLanguage.Python;
 
         if (csproj is not null)
         {
             projectFile = csproj;
-            return "dotnet";
+            return ProgrammingLanguage.CSharp;
         }
 
-        return "unknown";
+        return ProgrammingLanguage.Unknown;
     }
 }

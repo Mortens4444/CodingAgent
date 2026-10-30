@@ -5,7 +5,7 @@ using System.Text.Json;
 
 namespace CodingAgent.Services;
 
-internal class ToolDispatcher
+public class ToolDispatcher
 {
     private readonly Dictionary<string, IToolCommand> commands;
 
@@ -26,11 +26,15 @@ internal class ToolDispatcher
 
     public async Task<string> ExecuteToolAsync(ICodingLanguageService codingLanguageService, string toolName, JsonElement args)
     {
-        if (commands.TryGetValue(toolName, out var command))
-        {
-            return await command.ExecuteAsync(args, codingLanguageService);
-        }
+        if (!commands.TryGetValue(toolName, out var command))
+            return $"ERROR: Unknown tool '{toolName}'.";
 
-        return $"ERROR: Unknown tool '{toolName}'. Choose one of: {String.Join(", ", commands.Keys)}, finish.";
+        Console.WriteLine($"[ToolDispatcher] Executing: {toolName}");
+
+        var result = await command.ExecuteAsync(args, codingLanguageService);
+
+        Console.WriteLine($"[ToolDispatcher] Result: {result}");
+
+        return result;
     }
 }

@@ -1,9 +1,10 @@
-﻿using CodingAgent.Extensions;
+﻿using CodingAgent.Dto;
+using CodingAgent.Extensions;
 using Microsoft.Extensions.AI;
 
 namespace CodingAgent.Services;
 
-internal static class AgentPromptBuilder
+public static class AgentPromptBuilder
 {
     public static List<ChatMessage> CreateInitialMessages(ProjectContext project)
     {
@@ -12,7 +13,7 @@ internal static class AgentPromptBuilder
             new(ChatRole.System, PromptProvider.SystemPrompt),
             new(ChatRole.User,
                 $"Project root: {project.Root}\n" +
-                $"Project kind: {project.ProjectKind}\n" +
+                $"Project kind: {project.ProgrammingLanguage}\n" +
                 $"Project file: {(String.IsNullOrWhiteSpace(project.ProjectFile) ? "(none)" : project.ProjectFile)}\n\n" +
                 "ToDo.txt content follows. Treat it as the requested work. " +
                 "Start by inspecting the project structure and relevant configuration files.\n" +

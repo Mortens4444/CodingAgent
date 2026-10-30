@@ -4,7 +4,7 @@ using System.Text.Json;
 
 namespace CodingAgent.Commands;
 
-internal class Command
+public class Command
 {
     protected static string GetString(JsonElement element, string propertyName, string defaultValue = "")
     {
@@ -26,7 +26,7 @@ internal class Command
 
         var parts = relative.Split([Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar], StringSplitOptions.RemoveEmptyEntries);
         if (parts.Any(ProjectITypedentifier.ExcludedDirectories.Contains))
-            throw new InvalidOperationException("Paths inside build-output or internal folders (bin, obj, .git, .vs, node_modules, backups) are blocked.");
+            throw new InvalidOperationException("Paths inside build-output or public folders (bin, obj, .git, .vs, node_modules, backups) are blocked.");
 
         return fullPath;
     }

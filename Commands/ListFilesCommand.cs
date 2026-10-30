@@ -4,7 +4,7 @@ using System.Text.Json;
 
 namespace CodingAgent.Commands;
 
-internal class ListFilesCommand : Command, IToolCommand
+public class ListFilesCommand : Command, IToolCommand
 {
     public async Task<string> ExecuteAsync(JsonElement args, ICodingLanguageService codingLanguageService)
     {

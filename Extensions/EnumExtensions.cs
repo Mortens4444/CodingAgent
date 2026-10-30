@@ -3,7 +3,7 @@ using System.Reflection;
 
 namespace CodingAgent.Extensions;
 
-internal static class EnumExtensions
+public static class EnumExtensions
 {
     public static string GetDescription(this Enum value)
     {

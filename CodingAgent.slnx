@@ -3,4 +3,5 @@
     <File Path="ToDo.txt" />
   </Folder>
   <Project Path="CodingAgent.csproj" />
+  <Project Path="CodingAgent.UnitTests/CodingAgent.UnitTests.csproj" />
 </Solution>

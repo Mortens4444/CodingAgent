@@ -2,7 +2,7 @@
 
 namespace CodingAgent.Extensions;
 
-internal static class JsonElementExtensions
+public static class JsonElementExtensions
 {
     public static string GetString(this JsonElement element, string propertyName, string defaultValue = "")
     {

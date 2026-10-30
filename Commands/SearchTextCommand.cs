@@ -5,7 +5,7 @@ using System.Text.Json;
 
 namespace CodingAgent.Commands;
 
-internal class SearchTextCommand : Command, IToolCommand
+public class SearchTextCommand : Command, IToolCommand
 {
     private static readonly HashSet<string> TextExtensions = new(StringComparer.OrdinalIgnoreCase)
     {

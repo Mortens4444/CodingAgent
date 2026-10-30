@@ -2,11 +2,11 @@
 
 namespace CodingAgent.Services.LanguageServices;
 
-internal class CSharpCodingLanguageService(string root, string projectFile) : LanguageService(root), ICodingLanguageService
+public class CSharpCodingLanguageService(string root, string projectFile) : LanguageService(root), ICodingLanguageService
 {
     private readonly string projectFile = projectFile;
 
-    public Task<string> BuildAsync() => RunDotnetAsync("build", "--configuration", "Release", "--no-incremental", "-warnaserror");
+    public Task<string> BuildAsync() => RunDotnetAsync("build", "--configuration", "Debug", "--no-incremental", "-warnaserror");
 
     public Task<string> RunTestsAsync() => RunDotnetAsync("test");
 

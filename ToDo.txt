@@ -1,0 +1,3 @@
+-Need tests and about 80% coverage. Use mocklis and nunit.
+-qwen2.5-coder:32b-instruct-q4_K_M is not exist on this machine, we should have a new way to download and start it if it's possible
+-add more languages to support (C, assembly, pascal, lisp, javascript, typescript, html, c++, java, etc) also need help to setup dev env for these languages (to work the build, validate, etc)
