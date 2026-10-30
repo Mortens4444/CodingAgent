@@ -4,5 +4,14 @@ public enum ProgrammingLanguage
 {
     Unknown,
     CSharp,
-    Python
+    Python,
+    C,
+    Cpp,
+    Java,
+    JavaScript,
+    TypeScript,
+    Html,
+    Assembly,
+    Pascal,
+    Lisp
 }

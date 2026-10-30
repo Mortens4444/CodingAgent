@@ -1,5 +1,4 @@
 ﻿using CodingAgent.Extensions;
-using CodingAgent.Services;
 using System.Text.Json;
 
 namespace CodingAgent.Commands;
@@ -25,7 +24,8 @@ public class Command
             throw new InvalidOperationException("Access outside the solution root is not allowed.");
 
         var parts = relative.Split([Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar], StringSplitOptions.RemoveEmptyEntries);
-        if (parts.Any(ProjectITypedentifier.ExcludedDirectories.Contains))
+
+        if (parts.Any(Constants.ExcludedDirectories.Contains))
             throw new InvalidOperationException("Paths inside build-output or public folders (bin, obj, .git, .vs, node_modules, backups) are blocked.");
 
         return fullPath;

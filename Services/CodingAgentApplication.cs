@@ -22,10 +22,19 @@ public sealed class CodingAgentApplication(ProjectContextLoader projectContextLo
     }
 
     private static ICodingLanguageService CreateLanguageService(ProjectContext project) =>
-        project.ProgrammingLanguage switch
-        {
-            ProgrammingLanguage.CSharp => new CSharpCodingLanguageService(project.Root, project.ProjectFile),
-            ProgrammingLanguage.Python => new PythonCodingLanguagetService(project.Root),
-            _ => throw new NotSupportedException($"The programming language is not supported.")
-        };
+            project.ProgrammingLanguage switch
+            {
+                ProgrammingLanguage.CSharp => new CSharpCodingLanguageService(project.Root, project.ProjectFile),
+                ProgrammingLanguage.Python => new PythonCodingLanguagetService(project.Root),
+                ProgrammingLanguage.C => new CCodingLanguageService(project.Root),
+                ProgrammingLanguage.Cpp => new CppCodingLanguageService(project.Root),
+                ProgrammingLanguage.Java => new JavaCodingLanguageService(project.Root),
+                ProgrammingLanguage.JavaScript => new JavaScriptCodingLanguageService(project.Root),
+                ProgrammingLanguage.TypeScript => new TypeScriptCodingLanguageService(project.Root),
+                ProgrammingLanguage.Html => new HtmlCodingLanguageService(project.Root),
+                ProgrammingLanguage.Assembly => new AssemblyCodingLanguageService(project.Root),
+                ProgrammingLanguage.Pascal => new PascalCodingLanguageService(project.Root),
+                ProgrammingLanguage.Lisp => new LispCodingLanguageService(project.Root),
+                _ => throw new NotSupportedException($"The programming language '{project.ProgrammingLanguage}' is not supported.")
+            };
 }

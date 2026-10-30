@@ -1,5 +1,4 @@
 ﻿using CodingAgent.Interfaces;
-using CodingAgent.Services;
 using System.Text.Json;
 
 namespace CodingAgent.Commands;
@@ -20,7 +19,7 @@ public class ListFilesCommand : Command, IToolCommand
         try
         {
             entries.AddRange(Directory.EnumerateDirectories(directory)
-                .Where(child => !ProjectITypedentifier.ExcludedDirectories.Contains(Path.GetFileName(child)))
+                .Where(child => !Constants.ExcludedDirectories.Contains(Path.GetFileName(child)))
                 .Select(child => "[DIR]  " + ToRelativePath(codingLanguageService.Root, child) + "/"));
             entries.AddRange(Directory.EnumerateFiles(directory)
                 .Select(file => "[FILE] " + ToRelativePath(codingLanguageService.Root, file)));

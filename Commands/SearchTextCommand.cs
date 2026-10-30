@@ -9,9 +9,13 @@ public class SearchTextCommand : Command, IToolCommand
 {
     private static readonly HashSet<string> TextExtensions = new(StringComparer.OrdinalIgnoreCase)
     {
+        // Alap kiterjesztések
         ".cs", ".razor", ".cshtml", ".xaml", ".json", ".xml", ".csproj", ".props",
         ".targets", ".md", ".txt", ".config", ".yaml", ".yml", ".resx", ".sln", ".slnx",
-        ".py", ".pyw", ".toml", ".ini", ".cfg", ".ipynb", ".sh", ".ps1", ".bat", ".sql"
+        ".py", ".pyw", ".toml", ".ini", ".cfg", ".ipynb", ".sh", ".ps1", ".bat", ".sql",
+        // Új nyelvek kiterjesztései
+        ".c", ".h", ".cpp", ".cc", ".cxx", ".hpp", ".java", ".js", ".mjs",
+        ".ts", ".tsx", ".html", ".htm", ".asm", ".s", ".pas", ".pp", ".lisp", ".lsp", ".cl"
     };
 
     public async Task<string> ExecuteAsync(JsonElement args, ICodingLanguageService codingLanguageService)
@@ -34,7 +38,7 @@ public class SearchTextCommand : Command, IToolCommand
             {
                 foreach (var child in Directory.EnumerateDirectories(current))
                 {
-                    if (!ProjectITypedentifier.ExcludedDirectories.Contains(Path.GetFileName(child)))
+                    if (!Constants.ExcludedDirectories.Contains(Path.GetFileName(child)))
                         directories.Push(child);
                 }
 
