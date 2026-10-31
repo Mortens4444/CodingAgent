@@ -1,11 +1,13 @@
 ﻿using CodingAgent.Extensions;
 using CodingAgent.Interfaces;
 using Microsoft.Extensions.AI;
+using System.Text;
 using System.Text.Json;
 
 namespace CodingAgent.Services;
 
-public sealed class CodingAgentLoop(IChatClient chatClient, ToolDispatcher toolDispatcher, int contextLength = Constants.DefaultContextLength)
+// With streamOutput the reply is printed while the model generates it instead of after the whole reply arrived.
+public sealed class CodingAgentLoop(IChatClient chatClient, ToolDispatcher toolDispatcher, int contextLength = Constants.DefaultContextLength, bool streamOutput = false)
 {
     // Rough token estimate for code and English; deliberately pessimistic.
     private const double CharsPerToken = 3.0;
@@ -28,7 +30,22 @@ public sealed class CodingAgentLoop(IChatClient chatClient, ToolDispatcher toolD
     // tend to keep listing and reading files until the step limit and never change anything.
     private const int MaxStepsWithoutChange = 8;
 
+    // Ends with a diff of every file the run changed, however the run stopped.
     public async Task RunAsync(
+        ICodingLanguageService languageService,
+        List<ChatMessage> messages)
+    {
+        try
+        {
+            await RunStepsAsync(languageService, messages);
+        }
+        finally
+        {
+            toolDispatcher.Changes.WriteReport();
+        }
+    }
+
+    private async Task RunStepsAsync(
         ICodingLanguageService languageService,
         List<ChatMessage> messages)
     {
@@ -55,17 +72,24 @@ public sealed class CodingAgentLoop(IChatClient chatClient, ToolDispatcher toolD
 
             try
             {
-                var response = await chatClient.GetResponseAsync(messages);
-                modelOutput = response.Text?.Trim() ?? String.Empty;
+                if (streamOutput)
+                {
+                    ConsoleOutput.WriteLine($"\n[Agent {step}/{Constants.MaxSteps}]", ConsoleOutput.Heading);
+                    modelOutput = await StreamResponseAsync(messages);
+                }
+                else
+                {
+                    var response = await chatClient.GetResponseAsync(messages);
+                    modelOutput = response.Text?.Trim() ?? String.Empty;
+                    ConsoleOutput.WriteLine($"\n[Agent {step}/{Constants.MaxSteps}]", ConsoleOutput.Heading);
+                    ConsoleOutput.WriteLine(modelOutput + "\n", ConsoleOutput.Model);
+                }
             }
             catch (Exception ex)
             {
                 ConsoleOutput.WriteLine($"Error when calling Ollama: {ex.Message}", ConsoleOutput.Error);
                 return;
             }
-
-            ConsoleOutput.WriteLine($"\n[Agent {step}/{Constants.MaxSteps}]", ConsoleOutput.Heading);
-            ConsoleOutput.WriteLine(modelOutput + "\n", ConsoleOutput.Model);
             messages.Add(new ChatMessage(ChatRole.Assistant, modelOutput));
 
             if (!ToolCallParser.TryParseAction(modelOutput, out var action, out var parseError))
@@ -149,6 +173,30 @@ public sealed class CodingAgentLoop(IChatClient chatClient, ToolDispatcher toolD
 
         ConsoleOutput.WriteLine(
             $"Agent stopped. Maximum step count: {Constants.MaxSteps}; check the results above.", ConsoleOutput.Warning);
+    }
+
+    private async Task<string> StreamResponseAsync(List<ChatMessage> messages)
+    {
+        var text = new StringBuilder();
+
+        try
+        {
+            await foreach (var update in chatClient.GetStreamingResponseAsync(messages))
+            {
+                var chunk = update.Text;
+                if (String.IsNullOrEmpty(chunk))
+                    continue;
+
+                text.Append(chunk);
+                ConsoleOutput.Write(chunk, ConsoleOutput.Model);
+            }
+        }
+        finally
+        {
+            ConsoleOutput.Write("\n\n", ConsoleOutput.Model);
+        }
+
+        return text.ToString().Trim();
     }
 
     private async Task<string> ExecuteToolAsync(

@@ -10,7 +10,8 @@ fixed set of tools (read, edit, build, test, ...) until it calls `finish` or run
 - Ollama running locally (default `http://localhost:11434`). The model is pulled automatically on first
   start if it is not installed yet.
 - The toolchain of the target project's language. The agent prints what is missing at startup; see
-  [DEV_ENVIRONMENT.md](DEV_ENVIRONMENT.md) and `scripts/setup-dev-env.ps1`.
+  [DEV_ENVIRONMENT.md](DEV_ENVIRONMENT.md), `scripts/setup-dev-env.ps1` (Windows) and
+  `scripts/setup-dev-env.sh` (Linux/macOS).
 
 ## Running it
 
@@ -56,7 +57,8 @@ Too vague:
 -make the app better
 ```
 
-After a run, review the changes (for example with `git diff`), then update `ToDo.txt` for the next run.
+A run ends with a list of every file it created, modified or deleted and a colored diff of each, whether it
+finished, hit the step limit or failed. Review it (or `git diff`), then update `ToDo.txt` for the next run.
 
 ## What the agent can do
 
@@ -73,6 +75,7 @@ After a run, review the changes (for example with `git diff`), then update `ToDo
 | `check_syntax` | Fast syntax/compile check |
 | `run_tests` | Run the project's tests (C# also reports coverage) |
 | `run_command` | Run one program in the project root, after you approve it |
+| `check_environment` | Re-check the toolchain, for example after you installed a missing compiler mid-run |
 | `finish` | End the run with a summary |
 
 Safety limits:
@@ -81,6 +84,9 @@ Safety limits:
   environments and similar folders are hidden from the tools.
 - `run_command` asks `Allow? [y/N]` in the console before every command (configurable, see below). It runs
   the program directly, without a shell.
+- With `FileChanges:Approval` set to `Ask`, every `write_file`, `replace_in_file`, `delete_file` and
+  `move_file` shows a preview (a diff for edits) and waits for `Allow this change? [y/N]`. `Never` makes the
+  run read-only: the model can inspect and build but every change is denied.
 - With `WriteFile:Backup` enabled, every overwritten file is copied to `.codingagent-backups/` first.
 
 Built-in guards against a stuck or careless model:
@@ -103,6 +109,8 @@ Settings live in `appsettings.json` and can be overridden on the command line
 | `CodingAgent:OllamaUrl` | `http://localhost:11434` | Ollama server |
 | `CodingAgent:ContextLength` | `8192` | Context window passed to Ollama (`num_ctx`); larger helps if your GPU memory allows |
 | `CodingAgent:TimeoutMinutes` | `30` | HTTP timeout per model call; `0` means none |
+| `CodingAgent:StreamOutput` | `true` | Print the model's reply while it is generated; `false` prints it when complete |
+| `CodingAgent:FileChanges:Approval` | `Always` | `Always` apply file changes, `Ask` before each one, or `Never` (read-only run) |
 | `CodingAgent:WriteFile:Backup` | `false` | Back up files before overwriting them |
 | `CodingAgent:RunCommand:Approval` | `Ask` | `Ask` each time, `Always` allow, or `Never` allow `run_command` |
 
@@ -115,7 +123,7 @@ need more memory; `deepseek-coder:33b` needs about 19 GB.
 | Symptom | Fix |
 |---------|-----|
 | `Could not prepare model ... on Ollama` | Start Ollama (`ollama serve`) or check `OllamaUrl` |
-| `'gcc' was not found on PATH` (or another tool) | Install it (`scripts/setup-dev-env.ps1 -Languages C`) and open a new terminal |
+| `'gcc' was not found on PATH` (or another tool) | Install it (`scripts/setup-dev-env.ps1 -Languages C`, or `scripts/setup-dev-env.sh C`). On Windows the running agent picks up the new PATH through `check_environment`; otherwise restart it from a new terminal |
 | Agent loops or gives up early | Make `ToDo.txt` more specific, use a bigger model, or raise `ContextLength` |
 | `Project type: Unknown` | Point it at the project file or a source file directly |
 
@@ -150,8 +158,6 @@ programs). The generated projects stay in `%TEMP%\CodingAgentE2E` for inspection
 
 Candidates for future work on the agent itself:
 
-- Linux/macOS version of `scripts/setup-dev-env.ps1` (currently install hints only).
-- A `check_environment` tool, so the model can re-check the toolchain after the user installs something.
-- Stream model output instead of waiting for the full reply.
-- Optional approval for `write_file`/`delete_file`, and a summary diff of all changes at the end.
-- Language-specific test setup (JUnit for plain Java, a Lisp test framework) when no build tool exists.
+- Let `check_environment` offer to run the setup script for the missing tools (after approval).
+- Show the change summary as one patch file (`changes.patch`) that can be applied or reverted with git.
+- Approval per file pattern (for example ask only for files outside `src/` or `tests/`).

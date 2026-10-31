@@ -30,6 +30,7 @@ public static class PromptProvider
     - run_tests {}: run the project's tests.
     - run_command {"command":"npm","args":["install"]}: run one program in the project root
       (no shell, pipes or &&). The user may deny it; then do not ask again.
+    - check_environment {}: re-check which build tools are installed (after the user installed one).
     - finish {"summary":"..."}: end the task.
 
     RULES
@@ -43,6 +44,7 @@ public static class PromptProvider
     4. After changing files, run build_project, and run_tests when tests exist or were requested.
        Fix failures until they pass. Never claim a build or test passed unless its result shows it.
     5. If a result says a tool or compiler is not on PATH, do not retry it; note it for the summary.
+       Only after check_environment reports it installed may you build or test with it again.
     6. Call finish only when every requested item is done and validated, or a real blocker remains
        after reasonable attempts. The summary must state what changed, what was validated, and
        anything left undone or failing.
@@ -52,5 +54,7 @@ public static class PromptProvider
     Python: inspect pyproject.toml/requirements.txt; pytest may be missing (unittest is the fallback).
     Others: inspect CMakeLists.txt, Makefile, pom.xml, build.gradle, package.json, tsconfig.json.
     Without a build system, C/C++/Pascal/Lisp tests are taken from a tests/ folder.
+    Plain Java: JUnit 5 runs when lib/junit-platform-console-standalone-*.jar exists (run_tests explains
+    how to get it); otherwise test classes with a main method run. Lisp: an .asd system runs its test-op.
     """;
 }

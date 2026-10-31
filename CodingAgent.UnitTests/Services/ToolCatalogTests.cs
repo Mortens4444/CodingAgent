@@ -12,7 +12,7 @@ public class ToolCatalogTests
         string result = ToolCatalog.SupportedToolsText;
 
         // Assert
-        string expected = "list_files, search_text, read_file, write_file, replace_in_file, delete_file, move_file, check_for_missing_files, build_project, check_syntax, run_tests, run_command, finish";
+        string expected = "list_files, search_text, read_file, write_file, replace_in_file, delete_file, move_file, check_for_missing_files, build_project, check_syntax, run_tests, run_command, check_environment, finish";
         Assert.That(result, Is.EqualTo(expected));
     }
 

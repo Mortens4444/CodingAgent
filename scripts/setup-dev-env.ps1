@@ -82,6 +82,7 @@ foreach ($name in $wanted) {
 Write-Host ''
 Write-Host 'Not installed by this script (per project, or no winget package):'
 Write-Host '  Maven/Gradle  use the project wrapper (mvnw / gradlew), or "scoop install maven gradle"'
+Write-Host '  JUnit         plain Java projects: put junit-platform-console-standalone-*.jar into lib/'
 Write-Host '  TypeScript    npm install --save-dev typescript   (the agent falls back to npx -p typescript)'
 Write-Host '  htmlhint      npm install --save-dev htmlhint      (optional; a built-in tag check is used without it)'
 Write-Host '  pytest        python -m pip install pytest         (optional; unittest is used without it)'

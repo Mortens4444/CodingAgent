@@ -12,7 +12,7 @@ public class WriteFileCommand(IConfiguration configuration) : Command, IToolComm
 
     public async Task<string> ExecuteAsync(JsonElement args, ICodingLanguageService codingLanguageService)
     {
-        var relativePath = GetString(args, "path", GetString(args, "file_path"));
+        var relativePath = GetFirstString(args, PathNames);
 
         if (String.IsNullOrWhiteSpace(relativePath))
             return "ERROR: Missing required argument 'path'.";
@@ -68,7 +68,7 @@ public class WriteFileCommand(IConfiguration configuration) : Command, IToolComm
                (exists && backup ? " The old version was saved into .codingagent-backups." : String.Empty);
     }
 
-    private static bool TryGetContent(JsonElement args, out string content)
+    public static bool TryGetContent(JsonElement args, out string content)
     {
         foreach (var name in new[] { "content", "new_content" })
         {

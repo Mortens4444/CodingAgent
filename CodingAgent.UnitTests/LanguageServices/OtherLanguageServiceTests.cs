@@ -166,7 +166,7 @@ public class OtherLanguageServiceTests
         Assert.That(build, Does.StartWith("Common Lisp has no separate build step"));
         Assert.That(_runner.Commands, Is.EqualTo(new[]
         {
-            "sbcl --non-interactive --no-userinit --load main.lisp",
+            "sbcl --noinform --non-interactive --no-userinit --load main.lisp",
             "sbcl --script tests/a.lisp",
             "sbcl --script tests/b.lisp"
         }));
@@ -188,9 +188,27 @@ public class OtherLanguageServiceTests
         Assert.That(tests, Does.Contain("fail"));
         Assert.That(_runner.Commands, Is.EqualTo(new[]
         {
-            "sbcl --non-interactive --no-userinit --load a.lisp --load b.cl",
+            "sbcl --noinform --non-interactive --no-userinit --load a.lisp --load b.cl",
             "sbcl --script test.lisp"
         }));
+    }
+
+    [Test]
+    public async Task Lisp_AsdfSystem_LoadsAndTestsTheShortestSystem()
+    {
+        _workspace.Write("app.asd");
+        _workspace.Write("app-test.asd");
+        _workspace.Write("src/main.lisp");
+        var service = new LispCodingLanguageService(_workspace.Root, _runner.Mock);
+
+        await service.ValidateSyntaxAsync();
+        await service.RunTestsAsync();
+
+        Assert.That(_runner.Commands, Has.Count.EqualTo(2));
+        Assert.That(_runner.Commands[0], Does.Contain("(asdf:load-asd (merge-pathnames \"app.asd\" (uiop:getcwd)))"));
+        Assert.That(_runner.Commands[0], Does.Contain("quicklisp/setup.lisp").And.Contain(":quickload \"app\""));
+        Assert.That(_runner.Commands[0], Does.Not.Contain("test-system"));
+        Assert.That(_runner.Commands[1], Does.EndWith("--eval (asdf:test-system \"app\")"));
     }
 
     [Test]

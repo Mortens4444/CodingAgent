@@ -15,7 +15,14 @@ public sealed record ToolRequirement(string[] Commands, string Purpose, string W
 
 public static class ToolchainCatalog
 {
-    public const string SetupScript = "scripts/setup-dev-env.ps1";
+    public const string WindowsSetupScript = "scripts/setup-dev-env.ps1";
+
+    public const string UnixSetupScript = "scripts/setup-dev-env.sh";
+
+    public static string SetupScript => OperatingSystem.IsWindows() ? WindowsSetupScript : UnixSetupScript;
+
+    public static string SetupCommand(ProgrammingLanguage language) =>
+        OperatingSystem.IsWindows() ? $"{WindowsSetupScript} -Languages {language}" : $"{UnixSetupScript} {language}";
 
     private static readonly ToolRequirement DotNet = new(["dotnet"], ".NET SDK (build and test)",
         "winget install --id Microsoft.DotNet.SDK.10 -e", "sudo apt install dotnet-sdk-10.0", "brew install --cask dotnet-sdk");
@@ -97,6 +104,7 @@ public static class ToolchainCatalog
         var tool = FindByCommand(command);
         var hint = tool is null ? String.Empty : $" It provides: {tool.Purpose}. Install: {tool.InstallHint}.";
         return $"ERROR: '{command}' was not found on PATH, so this step could not run.{hint} " +
-               "The user has to install it (see " + SetupScript + "); do not retry until it is installed.";
+               "The user has to install it (see " + SetupScript + "); do not retry until it is installed. " +
+               "After the user installs it, check_environment confirms it is available.";
     }
 }

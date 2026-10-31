@@ -41,8 +41,47 @@ public static class DevEnvironmentChecker
         }
 
         if (missingRequired.Count > 0 || missingOptional.Count > 0)
-            text.AppendLine($"  Run {ToolchainCatalog.SetupScript} -Languages {language} to install the missing tools, then restart the terminal.");
+            text.AppendLine($"  Run {ToolchainCatalog.SetupCommand(language)} to install the missing tools, then restart the terminal.");
 
         return new DevEnvironmentReport(text.ToString().TrimEnd(), missingRequired, missingOptional);
+    }
+
+    // Tools installed while the agent runs are only on the PATH stored in the registry, not on the PATH this
+    // process started with. Appends the new machine and user entries, keeping the process entries and their order.
+    // Returns the number of added directories. Other systems set PATH in shell profiles, which cannot be re-read here.
+    public static int RefreshPath()
+    {
+        if (!OperatingSystem.IsWindows())
+            return 0;
+
+        var current = Environment.GetEnvironmentVariable("PATH") ?? String.Empty;
+        var stored = Environment.GetEnvironmentVariable("PATH", EnvironmentVariableTarget.Machine) + Path.PathSeparator +
+                     Environment.GetEnvironmentVariable("PATH", EnvironmentVariableTarget.User);
+
+        var (path, added) = MergePath(current, stored);
+        if (added > 0)
+            Environment.SetEnvironmentVariable("PATH", path);
+
+        return added;
+    }
+
+    public static (string Path, int Added) MergePath(string current, string stored)
+    {
+        static string Normalize(string entry) => Environment.ExpandEnvironmentVariables(entry.Trim().Trim('"')).TrimEnd('\\', '/');
+
+        var entries = current.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
+        var known = new HashSet<string>(entries.Select(Normalize), StringComparer.OrdinalIgnoreCase);
+        var added = 0;
+
+        foreach (var entry in stored.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            if (known.Add(Normalize(entry)))
+            {
+                entries.Add(Environment.ExpandEnvironmentVariables(entry));
+                added++;
+            }
+        }
+
+        return (String.Join(Path.PathSeparator, entries), added);
     }
 }

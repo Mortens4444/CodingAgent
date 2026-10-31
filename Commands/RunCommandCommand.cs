@@ -42,9 +42,8 @@ public class RunCommandCommand(IConfiguration configuration, IProcessRunner? pro
 
     private static bool AskUser(string display)
     {
-        ConsoleOutput.Write($"\nThe agent wants to run: {display}\nAllow? [y/N] ", ConsoleOutput.Warning);
-        var answer = Console.ReadLine()?.Trim();
-        return answer is not null && (answer.Equals("y", StringComparison.OrdinalIgnoreCase) || answer.Equals("yes", StringComparison.OrdinalIgnoreCase));
+        ConsoleOutput.WriteLine($"\nThe agent wants to run: {display}", ConsoleOutput.Warning);
+        return UserApproval.Ask("Allow?");
     }
 
     // Accepts {"command":"npm","args":["install"]} or a whole command line in "command".

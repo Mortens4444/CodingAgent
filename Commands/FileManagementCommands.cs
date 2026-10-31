@@ -7,7 +7,7 @@ public class DeleteFileCommand : Command, IToolCommand
 {
     public Task<string> ExecuteAsync(JsonElement args, ICodingLanguageService codingLanguageService)
     {
-        var relativePath = GetFirstString(args, "path", "file_path");
+        var relativePath = GetFirstString(args, PathNames);
         var file = ResolveWithinRoot(codingLanguageService.Root, relativePath);
 
         if (Directory.Exists(file))
@@ -22,10 +22,13 @@ public class DeleteFileCommand : Command, IToolCommand
 
 public class MoveFileCommand : Command, IToolCommand
 {
+    public static readonly string[] SourceNames = ["source", "from", "path", "old_path"];
+    public static readonly string[] DestinationNames = ["destination", "to", "new_path", "target"];
+
     public Task<string> ExecuteAsync(JsonElement args, ICodingLanguageService codingLanguageService)
     {
-        var source = ResolveWithinRoot(codingLanguageService.Root, GetFirstString(args, "source", "from", "path", "old_path"));
-        var destination = ResolveWithinRoot(codingLanguageService.Root, GetFirstString(args, "destination", "to", "new_path", "target"));
+        var source = ResolveWithinRoot(codingLanguageService.Root, GetFirstString(args, SourceNames));
+        var destination = ResolveWithinRoot(codingLanguageService.Root, GetFirstString(args, DestinationNames));
 
         if (!File.Exists(source))
             return Task.FromResult($"ERROR: Source file not found: {ToRelativePath(codingLanguageService.Root, source)}");

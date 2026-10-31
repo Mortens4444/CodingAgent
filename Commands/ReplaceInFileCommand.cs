@@ -8,12 +8,12 @@ namespace CodingAgent.Commands;
 // reproducing all of it. The snippet must be unique unless replace_all is set.
 public class ReplaceInFileCommand : Command, IToolCommand
 {
-    private static readonly string[] OldTextNames = ["old_text", "old_str", "old_string", "search", "find"];
-    private static readonly string[] NewTextNames = ["new_text", "new_str", "new_string", "replace", "replacement"];
+    public static readonly string[] OldTextNames = ["old_text", "old_str", "old_string", "search", "find"];
+    public static readonly string[] NewTextNames = ["new_text", "new_str", "new_string", "replace", "replacement"];
 
     public async Task<string> ExecuteAsync(JsonElement args, ICodingLanguageService codingLanguageService)
     {
-        var relativePath = GetFirstString(args, "path", "file_path");
+        var relativePath = GetFirstString(args, PathNames);
         if (String.IsNullOrWhiteSpace(relativePath))
             return "ERROR: Missing required argument 'path'.";
 

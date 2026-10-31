@@ -28,6 +28,7 @@ public static class Program
         var ollamaUrl = builder.Configuration.GetValue("CodingAgent:OllamaUrl", "http://localhost:11434")!;
         var contextLength = builder.Configuration.GetValue("CodingAgent:ContextLength", Constants.DefaultContextLength);
         var timeoutInMinutes = builder.Configuration.GetValue("CodingAgent:TimeoutMinutes", 30);
+        var streamOutput = builder.Configuration.GetValue("CodingAgent:StreamOutput", true);
 
         var ollamaClient = ChatClientFactory.Get(ollamaUrl, model, timeoutInMinutes);
 
@@ -48,7 +49,8 @@ public static class Program
         builder.Services.AddTransient(sp => new CodingAgentLoop(
             sp.GetRequiredService<IChatClient>(),
             sp.GetRequiredService<ToolDispatcher>(),
-            contextLength));
+            contextLength,
+            streamOutput));
         builder.Services.AddTransient<CodingAgentApplication>();
 
         using var host = builder.Build();

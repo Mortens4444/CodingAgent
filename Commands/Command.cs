@@ -5,6 +5,8 @@ namespace CodingAgent.Commands;
 
 public class Command
 {
+    public static readonly string[] PathNames = ["path", "file_path"];
+
     protected static string GetString(JsonElement element, string propertyName, string defaultValue = "")
     {
         return element.GetString(propertyName, defaultValue);
@@ -12,7 +14,7 @@ public class Command
 
     // Models use many spellings for the same argument (old_str, old_text, search, ...).
     protected static string GetFirstString(JsonElement element, params string[] propertyNames) =>
-        propertyNames.Select(name => element.GetString(name, null!)).FirstOrDefault(value => value is not null) ?? String.Empty;
+        element.GetFirstString(propertyNames) ?? String.Empty;
 
     protected static bool HasString(JsonElement element, params string[] propertyNames) =>
         element.ValueKind == JsonValueKind.Object &&

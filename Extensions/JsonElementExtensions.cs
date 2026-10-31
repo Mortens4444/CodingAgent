@@ -15,4 +15,8 @@ public static class JsonElementExtensions
 
         return defaultValue;
     }
+
+    // The first of several alternative argument names that holds a string, or null when none does.
+    public static string? GetFirstString(this JsonElement element, params string[] propertyNames) =>
+        propertyNames.Select(name => element.GetString(name, null!)).FirstOrDefault(value => value is not null);
 }

@@ -19,6 +19,7 @@ public static class ToolCatalog
         "check_syntax",
         "run_tests",
         "run_command",
+        "check_environment",
         "finish"
     ];
 
@@ -56,6 +57,7 @@ public static class ToolCatalog
             "move_file" or "rename_file" => "move_file",
             "check_syntax" or "validate_syntax" or "lint" => "check_syntax",
             "run_command" or "execute_command" or "run_shell" or "shell" => "run_command",
+            "check_environment" or "check_env" or "check_toolchain" or "check_tools" => "check_environment",
             "check_file_exists" or "check_file" or "file_exists" => "check_for_missing_files",
             "check_for_missing_files" or "check_missing_files" => "check_for_missing_files",
             "build_solution" or "build_project" => "build_project",

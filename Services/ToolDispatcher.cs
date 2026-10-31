@@ -8,9 +8,15 @@ namespace CodingAgent.Services;
 public class ToolDispatcher
 {
     private readonly Dictionary<string, IToolCommand> commands;
+    private readonly FileChangeApproval approval;
 
-    public ToolDispatcher(IConfiguration configuration, IProcessRunner? processRunner = null)
+    // Every file the run changed, with its content from before the first change.
+    public FileChangeTracker Changes { get; } = new();
+
+    public ToolDispatcher(IConfiguration configuration, IProcessRunner? processRunner = null, Func<string, bool>? askUser = null)
     {
+        approval = new FileChangeApproval(configuration.GetValue("CodingAgent:FileChanges:Approval", "Always")!, askUser);
+
         commands = new Dictionary<string, IToolCommand>(StringComparer.OrdinalIgnoreCase)
         {
             ["list_files"] = new ListFilesCommand(),
@@ -24,7 +30,8 @@ public class ToolDispatcher
             ["build_project"] = new BuildProjectCommand(),
             ["check_syntax"] = new CheckSyntaxCommand(),
             ["run_tests"] = new RunTestsCommand(),
-            ["run_command"] = new RunCommandCommand(configuration, processRunner)
+            ["run_command"] = new RunCommandCommand(configuration, processRunner),
+            ["check_environment"] = new CheckEnvironmentCommand(processRunner)
         };
     }
 
@@ -33,6 +40,15 @@ public class ToolDispatcher
     {
         if (!commands.TryGetValue(toolName, out var command))
             return $"ERROR: Unknown tool '{toolName}'.";
+
+        if (FileChangeTools.Names.Contains(toolName))
+        {
+            var denied = approval.Check(codingLanguageService.Root, toolName, args);
+            if (denied is not null)
+                return denied;
+
+            Changes.Snapshot(codingLanguageService.Root, FileChangeTools.PathsOf(toolName, args));
+        }
 
         ConsoleOutput.WriteLine($"[ToolDispatcher] Executing: {toolName}", ConsoleOutput.Tool);
 

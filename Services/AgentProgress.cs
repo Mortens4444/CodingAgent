@@ -9,10 +9,7 @@ public sealed partial class AgentProgress
 {
     public const string NotePrefix = "HOST PROGRESS NOTE";
 
-    private static readonly HashSet<string> ChangingTools = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "write_file", "replace_in_file", "delete_file", "move_file"
-    };
+    private static readonly HashSet<string> ChangingTools = FileChangeTools.Names;
 
     private static readonly HashSet<string> ValidatingTools = new(StringComparer.OrdinalIgnoreCase)
     {
