@@ -20,7 +20,7 @@ public static class ToolCallParser
         error = String.Empty;
 
         var start = output.IndexOf('{');
-        var end = output.LastIndexOf('}');
+        var end = start < 0 ? -1 : FindObjectEnd(output, start);
 
         if (start < 0 || end <= start)
         {
@@ -98,6 +98,32 @@ public static class ToolCallParser
         }
     }
 
+    // Returns the index of the brace closing the object that starts at 'start', so text after the
+    // first object (for example a made-up next turn) is ignored. Falls back to the last '}'.
+    private static int FindObjectEnd(string output, int start)
+    {
+        var depth = 0;
+        var inString = false;
+
+        for (var i = start; i < output.Length; i++)
+        {
+            var c = output[i];
+
+            if (inString)
+            {
+                if (c == '\\') i++;
+                else if (c == '"') inString = false;
+                continue;
+            }
+
+            if (c == '"') inString = true;
+            else if (c == '{') depth++;
+            else if (c == '}' && --depth == 0) return i;
+        }
+
+        return output.LastIndexOf('}');
+    }
+
     private static string? GetFirstString(
         JsonElement element,
         params string[] propertyNames)
@@ -133,12 +159,18 @@ public static class ToolCallParser
 
             foreach (var propertyName in ArgumentNames)
             {
-                if (source.TryGetProperty(propertyName, out var candidate) &&
-                    candidate.ValueKind == JsonValueKind.Object)
+                if (!source.TryGetProperty(propertyName, out var candidate))
+                    continue;
+
+                if (candidate.ValueKind == JsonValueKind.Object)
                 {
                     arguments = candidate.Clone();
                     return true;
                 }
+
+                // OpenAI-style calls encode the arguments as a JSON string: "arguments": "{\"path\":\".\"}".
+                if (candidate.ValueKind == JsonValueKind.String && TryParseObject(candidate.GetString(), out arguments))
+                    return true;
             }
         }
 
@@ -146,9 +178,28 @@ public static class ToolCallParser
         return false;
     }
 
-    private static JsonElement CreateEmptyObject()
+    private static bool TryParseObject(string? text, out JsonElement value)
     {
-        using var document = JsonDocument.Parse("{}");
-        return document.RootElement.Clone();
+        value = default;
+        if (String.IsNullOrWhiteSpace(text) || !text.TrimStart().StartsWith('{'))
+            return false;
+
+        try
+        {
+            using var document = JsonDocument.Parse(text);
+            if (document.RootElement.ValueKind != JsonValueKind.Object)
+                return false;
+
+            value = document.RootElement.Clone();
+            return true;
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
     }
+
+    private static readonly JsonElement EmptyObject = JsonDocument.Parse("{}").RootElement.Clone();
+
+    private static JsonElement CreateEmptyObject() => EmptyObject;
 }

@@ -82,6 +82,17 @@ public class ToolCallParserTests
     }
 
     [Test]
+    public void TryParseAction_ArgumentsAsJsonString_AreParsed()
+    {
+        string input = "{\"name\": \"read_file\", \"arguments\": \"{\\\"path\\\": \\\"a.cs\\\"}\"}";
+
+        bool success = ToolCallParser.TryParseAction(input, out var action, out _);
+
+        Assert.That(success, Is.True);
+        Assert.That(action.Arguments.GetProperty("path").GetString(), Is.EqualTo("a.cs"));
+    }
+
+    [Test]
     public void TryParseAction_WithoutArguments_DefaultsToEmptyObject()
     {
         // Arrange
@@ -93,5 +104,17 @@ public class ToolCallParserTests
         // Assert
         Assert.That(success, Is.True);
         Assert.That(action.Arguments.ValueKind, Is.EqualTo(JsonValueKind.Object));
+    }
+
+    [Test]
+    public void TryParseAction_WhenTextFollowsTheObject_ParsesOnlyTheFirstObject()
+    {
+        string output = "{\"name\":\"read_file\",\"arguments\":{\"path\":\"a}b\\\"c.cs\"}}\n### Instruction:\n{\"name\":\"finish\"}";
+
+        bool success = ToolCallParser.TryParseAction(output, out var action, out var error);
+
+        Assert.That(success, Is.True, error);
+        Assert.That(action.Name, Is.EqualTo("read_file"));
+        Assert.That(action.Arguments.GetProperty("path").GetString(), Is.EqualTo("a}b\"c.cs"));
     }
 }

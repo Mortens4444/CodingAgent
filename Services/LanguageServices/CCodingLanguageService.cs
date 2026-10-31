@@ -1,60 +1,89 @@
 ﻿using CodingAgent.Interfaces;
+using System.Text.RegularExpressions;
 
 namespace CodingAgent.Services.LanguageServices;
 
-public class CCodingLanguageService(string root) : LanguageService(root), ICodingLanguageService
+// Shared by C and C++. Build order: CMakeLists.txt, Makefile, then a direct compiler call over all sources.
+// Without CMake/make, tests are the sources under test/ or tests/ (or named test_*, *_test) compiled together with
+// the project sources that do not define main().
+public abstract partial class NativeCodingLanguageService(string root, IProcessRunner? processRunner, string compiler, string[] extensions, string[] flags)
+    : LanguageService(root, processRunner), ICodingLanguageService
 {
+    private static readonly string Program = ExecutableName("program");
+    private static readonly string TestProgram = ExecutableName("test_program");
+
     public async Task<string> BuildAsync()
     {
-        if (File.Exists(Path.Combine(Root, "CMakeLists.txt")))
+        if (HasFile("CMakeLists.txt"))
         {
-            var cmakeResult = await RunProcessAsync("cmake", Root, ["-B", "build", "-S", "."], "cmake -B build -S .");
-            if (!cmakeResult.Contains("Exit code: 0")) return cmakeResult;
-            return await RunProcessAsync("cmake", Root, ["--build", "build"], "cmake --build build");
-        }
-        if (File.Exists(Path.Combine(Root, "Makefile")) || File.Exists(Path.Combine(Root, "makefile")))
-        {
-            return await RunProcessAsync("make", Root, [], "make");
+            var configure = await RunProcessAsync("cmake", ["-B", "build", "-S", "."]);
+            return Succeeded(configure) ? await RunProcessAsync("cmake", ["--build", "build"]) : configure;
         }
 
-        // Fallback: compile all .c files in root
-        return await RunProcessAsync("gcc", Root, ["*.c", "-o", "program", "-Wall", "-Wextra"], "gcc *.c -o program");
+        if (HasMakefile)
+            return await RunProcessAsync(MakeCommand, []);
+
+        var sources = FindSourceFiles(extensions).Where(file => !IsTestFile(file)).ToList();
+        if (sources.Count == 0)
+            return NoSourcesMessage(compiler);
+
+        return await RunProcessAsync(compiler, [.. flags, .. sources, "-o", Program]);
     }
 
-    public Task<string> RunTestsAsync() =>
-        File.Exists(Path.Combine(Root, "test")) || File.Exists(Path.Combine(Root, "test.exe"))
-            ? RunProcessAsync(Path.Combine(Root, "test"), Root, [], "./test")
-            : File.Exists(Path.Combine(Root, "program"))
-                ? RunProcessAsync(Path.Combine(Root, "program"), Root, [], "./program")
-                : Task.FromResult("No compiled executable found to run tests.");
-
-    public Task<string> ValidateSyntaxAsync() =>
-        RunProcessAsync("gcc", Root, ["-fsyntax-only", "*.c"], "gcc -fsyntax-only *.c");
-}
-
-public class CppCodingLanguageService(string root) : LanguageService(root), ICodingLanguageService
-{
-    public async Task<string> BuildAsync()
+    public async Task<string> RunTestsAsync()
     {
-        if (File.Exists(Path.Combine(Root, "CMakeLists.txt")))
-        {
-            var cmakeResult = await RunProcessAsync("cmake", Root, ["-B", "build", "-S", "."], "cmake -B build -S .");
-            if (!cmakeResult.Contains("Exit code: 0")) return cmakeResult;
-            return await RunProcessAsync("cmake", Root, ["--build", "build"], "cmake --build build");
-        }
-        if (File.Exists(Path.Combine(Root, "Makefile")) || File.Exists(Path.Combine(Root, "makefile")))
-        {
-            return await RunProcessAsync("make", Root, [], "make");
-        }
+        if (HasFile("CMakeLists.txt"))
+            return await RunProcessAsync("ctest", ["--test-dir", "build", "--output-on-failure"]);
 
-        return await RunProcessAsync("g++", Root, ["*.cpp", "-o", "program", "-std=c++17", "-Wall"], "g++ *.cpp -o program");
+        if (HasMakefile)
+            return await RunProcessAsync(MakeCommand, ["test"]);
+
+        var allSources = FindSourceFiles(extensions);
+        var tests = allSources.Where(IsTestFile).ToList();
+        if (tests.Count == 0)
+            return await RunExecutableAsync(Program,
+                $"No test sources (test/ or tests/ folder) and no built {Program}. Run build_project first or add tests.");
+
+        var libraries = allSources.Where(file => !IsTestFile(file) && !DefinesMain(file));
+        var compile = await RunProcessAsync(compiler, [.. flags, .. tests, .. libraries, "-o", TestProgram]);
+        if (!Succeeded(compile))
+            return compile;
+
+        return await RunExecutableAsync(TestProgram, $"ERROR: {TestProgram} was not produced.");
     }
 
-    public Task<string> RunTestsAsync() =>
-        File.Exists(Path.Combine(Root, "program"))
-            ? RunProcessAsync(Path.Combine(Root, "program"), Root, [], "./program")
-            : Task.FromResult("No compiled program found.");
+    public async Task<string> ValidateSyntaxAsync()
+    {
+        var sources = FindSourceFiles(extensions);
+        return sources.Count == 0
+            ? NoSourcesMessage(compiler)
+            : await RunProcessAsync(compiler, ["-fsyntax-only", .. flags, .. sources]);
+    }
 
-    public Task<string> ValidateSyntaxAsync() =>
-        RunProcessAsync("g++", Root, ["-fsyntax-only", "-std=c++17", "*.cpp"], "g++ -fsyntax-only *.cpp");
+    private bool HasMakefile => HasFile("Makefile", "makefile", "GNUmakefile");
+
+    // WinLibs/MinGW ship make as mingw32-make.
+    private string MakeCommand =>
+        ProcessRunner.FindExecutable("make") is null && ProcessRunner.FindExecutable("mingw32-make") is not null ? "mingw32-make" : "make";
+
+    private bool DefinesMain(string relativePath)
+    {
+        try
+        {
+            return MainRegex().IsMatch(File.ReadAllText(Path.Combine(Root, relativePath)));
+        }
+        catch (IOException)
+        {
+            return false;
+        }
+    }
+
+    [GeneratedRegex(@"\bmain\s*\(")]
+    private static partial Regex MainRegex();
 }
+
+public class CCodingLanguageService(string root, IProcessRunner? processRunner = null)
+    : NativeCodingLanguageService(root, processRunner, "gcc", [".c"], ["-Wall", "-Wextra"]);
+
+public class CppCodingLanguageService(string root, IProcessRunner? processRunner = null)
+    : NativeCodingLanguageService(root, processRunner, "g++", [".cpp", ".cc", ".cxx"], ["-std=c++17", "-Wall", "-Wextra"]);

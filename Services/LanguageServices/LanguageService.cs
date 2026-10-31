@@ -1,47 +1,85 @@
-﻿using CodingAgent.Extensions;
-using System.Diagnostics;
+﻿using CodingAgent.Interfaces;
+using CodingAgent.Services.DevEnvironment;
+using System.ComponentModel;
 
 namespace CodingAgent.Services.LanguageServices;
 
-public class LanguageService(string root)
+public class LanguageService(string root, IProcessRunner? processRunner = null)
 {
     public string Root { get; } = root;
 
-    protected static async Task<string> RunProcessAsync(string executable, string workingDirectory, IEnumerable<string> arguments, string displayCommand)
+    protected IProcessRunner ProcessRunner { get; } = processRunner ?? LanguageServices.ProcessRunner.Default;
+
+    protected static bool IsWindows => OperatingSystem.IsWindows();
+
+    protected static string NullDevice => IsWindows ? "NUL" : "/dev/null";
+
+    protected async Task<string> RunProcessAsync(string executable, IReadOnlyList<string> arguments)
     {
-        var startInfo = new ProcessStartInfo
-        {
-            FileName = executable,
-            WorkingDirectory = workingDirectory,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true
-        };
-
-        foreach (var argument in arguments)
-            startInfo.ArgumentList.Add(argument);
-
-        using var process = new Process { StartInfo = startInfo };
-        process.Start();
-        var stdoutTask = process.StandardOutput.ReadToEndAsync();
-        var stderrTask = process.StandardError.ReadToEndAsync();
-        using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(3));
-
         try
         {
-            await process.WaitForExitAsync(timeout.Token);
+            return await ProcessRunner.RunAsync(executable, Root, arguments, FormatCommand(executable, arguments));
         }
-        catch (OperationCanceledException)
+        catch (Win32Exception)
         {
-            try { process.Kill(true); } catch { }
-            return $"ERROR: {displayCommand} timed out after 3 minutes; the process was stopped.";
+            return ToolchainCatalog.MissingToolMessage(executable);
+        }
+    }
+
+    protected static bool Succeeded(string result) => result.Contains("\nExit code: 0\n", StringComparison.Ordinal);
+
+    protected bool HasFile(params string[] names) => names.Any(name => File.Exists(Path.Combine(Root, name)));
+
+    // Processes run without a shell, so wildcards such as *.c are expanded here.
+    protected List<string> FindSourceFiles(params string[] extensions)
+    {
+        var files = new List<string>();
+        var pending = new Stack<string>();
+        pending.Push(Root);
+
+        while (pending.Count > 0)
+        {
+            var current = pending.Pop();
+            try
+            {
+                files.AddRange(Directory.EnumerateFiles(current)
+                    .Where(file => extensions.Contains(Path.GetExtension(file), StringComparer.OrdinalIgnoreCase))
+                    .Select(file => Path.GetRelativePath(Root, file).Replace('\\', '/')));
+
+                foreach (var directory in Directory.EnumerateDirectories(current))
+                {
+                    if (!Constants.ExcludedDirectories.Contains(Path.GetFileName(directory)))
+                        pending.Push(directory);
+                }
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
         }
 
-        var stdout = await stdoutTask;
-        var stderr = await stderrTask;
-        var output = (stdout + Environment.NewLine + stderr).Trim();
-        return $"Command: {displayCommand}\nExit code: {process.ExitCode}\n" +
-               (String.IsNullOrWhiteSpace(output) ? "(no output)" : output.Limit(Constants.MaxLength));
+        files.Sort(StringComparer.OrdinalIgnoreCase);
+        return files;
     }
+
+    // Native executables get .exe on Windows; paths are relative to Root, which is the working directory.
+    protected static string ExecutableName(string baseName) => IsWindows ? baseName + ".exe" : baseName;
+
+    protected Task<string> RunExecutableAsync(string relativePath, string missingMessage) =>
+        File.Exists(Path.Combine(Root, relativePath))
+            ? RunProcessAsync(Path.Combine(Root, relativePath), [])
+            : Task.FromResult(missingMessage);
+
+    protected static bool IsTestFile(string relativePath)
+    {
+        var parts = relativePath.Split('/');
+        var name = Path.GetFileNameWithoutExtension(relativePath);
+        return parts.Take(parts.Length - 1).Any(part => part.Equals("test", StringComparison.OrdinalIgnoreCase) || part.Equals("tests", StringComparison.OrdinalIgnoreCase)) ||
+               name.StartsWith("test_", StringComparison.OrdinalIgnoreCase) ||
+               name.EndsWith("_test", StringComparison.OrdinalIgnoreCase) ||
+               name.Equals("test", StringComparison.OrdinalIgnoreCase) ||
+               name.Equals("tests", StringComparison.OrdinalIgnoreCase);
+    }
+
+    protected static string NoSourcesMessage(string kind) => $"ERROR: No {kind} source files were found in the project root.";
+
+    private static string FormatCommand(string executable, IEnumerable<string> arguments) =>
+        String.Join(" ", new[] { executable }.Concat(arguments).Select(part => part.Contains(' ') ? $"\"{part}\"" : part));
 }

@@ -2,18 +2,35 @@
 
 namespace CodingAgent.Services.LanguageServices;
 
-public class JavaScriptCodingLanguageService(string root) : LanguageService(root), ICodingLanguageService
+// Uses package.json scripts when present; otherwise Node's own syntax check and built-in test runner.
+public class JavaScriptCodingLanguageService(string root, IProcessRunner? processRunner = null) : LanguageService(root, processRunner), ICodingLanguageService
 {
-    public Task<string> BuildAsync() =>
-        File.Exists(Path.Combine(Root, "package.json"))
-            ? RunProcessAsync("npm", Root, ["run", "build"], "npm run build")
-            : Task.FromResult("No package.json build script configured.");
+    public async Task<string> BuildAsync() =>
+        NodeProject.HasScript(Root, "build")
+            ? await RunProcessAsync("npm", ["run", "build"])
+            : "No build script in package.json; checked syntax instead.\n" + await ValidateSyntaxAsync();
 
     public Task<string> RunTestsAsync() =>
-        File.Exists(Path.Combine(Root, "package.json"))
-            ? RunProcessAsync("npm", Root, ["test"], "npm test")
-            : Task.FromResult("No package.json found for tests.");
+        NodeProject.HasScript(Root, "test")
+            ? RunProcessAsync("npm", ["test"])
+            : RunProcessAsync("node", ["--test"]);
 
-    public Task<string> ValidateSyntaxAsync() =>
-        RunProcessAsync("node", Root, ["--check", "*.js"], "node --check *.js");
+    public async Task<string> ValidateSyntaxAsync()
+    {
+        var sources = FindSourceFiles(".js", ".mjs", ".cjs");
+        if (sources.Count == 0)
+            return NoSourcesMessage("JavaScript");
+
+        var failures = new List<string>();
+        foreach (var source in sources)
+        {
+            var result = await RunProcessAsync("node", ["--check", source]);
+            if (!Succeeded(result))
+                failures.Add(result);
+        }
+
+        return failures.Count == 0
+            ? $"Command: node --check <each file>\nExit code: 0\nSyntax OK. Checked {sources.Count} JavaScript files."
+            : $"Syntax errors in {failures.Count} of {sources.Count} JavaScript files:\n" + String.Join("\n\n", failures);
+    }
 }

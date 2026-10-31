@@ -9,7 +9,7 @@ public class ToolDispatcher
 {
     private readonly Dictionary<string, IToolCommand> commands;
 
-    public ToolDispatcher(IConfiguration configuration)
+    public ToolDispatcher(IConfiguration configuration, IProcessRunner? processRunner = null)
     {
         commands = new Dictionary<string, IToolCommand>(StringComparer.OrdinalIgnoreCase)
         {
@@ -18,23 +18,25 @@ public class ToolDispatcher
             ["read_file"] = new ReadFileCommand(),
             ["search_text"] = new SearchTextCommand(),
             ["write_file"] = new WriteFileCommand(configuration),
+            ["replace_in_file"] = new ReplaceInFileCommand(),
+            ["delete_file"] = new DeleteFileCommand(),
+            ["move_file"] = new MoveFileCommand(),
             ["build_project"] = new BuildProjectCommand(),
-            ["build_solution"] = new BuildProjectCommand(), // Aliased to same command
-            ["run_tests"] = new RunTestsCommand()
+            ["check_syntax"] = new CheckSyntaxCommand(),
+            ["run_tests"] = new RunTestsCommand(),
+            ["run_command"] = new RunCommandCommand(configuration, processRunner)
         };
     }
 
+    // Expects a name already normalized by ToolCatalog, which owns the alias table.
     public async Task<string> ExecuteToolAsync(ICodingLanguageService codingLanguageService, string toolName, JsonElement args)
     {
         if (!commands.TryGetValue(toolName, out var command))
             return $"ERROR: Unknown tool '{toolName}'.";
 
-        Console.WriteLine($"[ToolDispatcher] Executing: {toolName}");
+        ConsoleOutput.WriteLine($"[ToolDispatcher] Executing: {toolName}", ConsoleOutput.Tool);
 
-        var result = await command.ExecuteAsync(args, codingLanguageService);
-
-        Console.WriteLine($"[ToolDispatcher] Result: {result}");
-
-        return result;
+        // The loop prints the result, so it is not written twice.
+        return await command.ExecuteAsync(args, codingLanguageService);
     }
 }

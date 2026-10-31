@@ -7,6 +7,9 @@
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
+    <RunSettingsFilePath>$(MSBuildThisFileDirectory)coverage.runsettings</RunSettingsFilePath>
+    <!-- Mocklis-generated mocks ignore nullable annotations (Task<string?> vs Task<string>), which fails the agent's -warnaserror build. -->
+    <NoWarn>$(NoWarn);CS8616;CS8620</NoWarn>
   </PropertyGroup>
   
   <ItemGroup>

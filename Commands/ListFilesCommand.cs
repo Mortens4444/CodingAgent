@@ -13,7 +13,7 @@ public class ListFilesCommand : Command, IToolCommand
 
         var directory = ResolveWithinRoot(codingLanguageService.Root, relativePath);
         if (!Directory.Exists(directory))
-            return $"ERROR: A könyvtár nem található: {relativePath}";
+            return $"ERROR: Directory not found:{relativePath}";
 
         var entries = new List<string>();
         try

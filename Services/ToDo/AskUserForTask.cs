@@ -6,9 +6,7 @@ public class AskUserForTask : IToDoProvider
 {
     public async Task<string?> GetToDoAsync(string? todoPath = null)
     {
-        Console.ForegroundColor = ConsoleColor.Yellow;
-        Console.WriteLine("How can I help you?");
-        Console.ResetColor();
+        ConsoleOutput.WriteLine("How can I help you?", ConsoleOutput.Warning);
         return Console.ReadLine();
     }
 }

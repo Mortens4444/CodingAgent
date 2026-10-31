@@ -12,7 +12,7 @@ public class ToolCatalogTests
         string result = ToolCatalog.SupportedToolsText;
 
         // Assert
-        string expected = "list_files, search_text, read_file, write_file, check_for_missing_files, build_project, run_tests, finish";
+        string expected = "list_files, search_text, read_file, write_file, replace_in_file, delete_file, move_file, check_for_missing_files, build_project, check_syntax, run_tests, run_command, finish";
         Assert.That(result, Is.EqualTo(expected));
     }
 
@@ -36,9 +36,16 @@ public class ToolCatalogTests
     [TestCase("LIST_DIR", "list_files")]
     [TestCase("search_files", "search_text")]
     [TestCase("get_file_contents", "read_file")]
-    [TestCase("edit_file", "write_file")]
+    [TestCase("open_file", "read_file")]
+    [TestCase("edit_file", "replace_in_file")]
+    [TestCase("str_replace", "replace_in_file")]
     [TestCase("update_file", "write_file")]
+    [TestCase("remove_file", "delete_file")]
+    [TestCase("rename_file", "move_file")]
+    [TestCase("validate_syntax", "check_syntax")]
+    [TestCase("execute_command", "run_command")]
     [TestCase("check_file_exists", "check_for_missing_files")]
+    [TestCase("file_exists", "check_for_missing_files")]
     [TestCase("check_missing_files", "check_for_missing_files")]
     [TestCase("build_solution", "build_project")]
     [TestCase("test_project", "run_tests")]
@@ -52,5 +59,16 @@ public class ToolCatalogTests
 
         // Assert
         Assert.That(result, Is.EqualTo(expected));
+    }
+
+    [Test]
+    public void ResponseFormat_RestrictsNameToSupportedTools()
+    {
+        var format = ToolCatalog.ResponseFormat as Microsoft.Extensions.AI.ChatResponseFormatJson;
+
+        Assert.That(format?.Schema, Is.Not.Null);
+        var names = format!.Schema!.Value.GetProperty("properties").GetProperty("name").GetProperty("enum")
+            .EnumerateArray().Select(e => e.GetString()).ToList();
+        Assert.That(String.Join(", ", names), Is.EqualTo(ToolCatalog.SupportedToolsText));
     }
 }

@@ -1,9 +1,10 @@
 ﻿using CodingAgent.Interfaces;
+using CodingAgent.Services.DevEnvironment;
 using System.ComponentModel;
 
 namespace CodingAgent.Services.LanguageServices;
 
-public class PythonCodingLanguagetService(string root) : LanguageService(root), ICodingLanguageService
+public class PythonCodingLanguagetService(string root, IProcessRunner? processRunner = null) : LanguageService(root, processRunner), ICodingLanguageService
 {
     public async Task<string> BuildAsync()
     {
@@ -58,17 +59,19 @@ print(f"Syntax OK. Checked {len(files)} Python files.")
         return RunPythonAsync(["-c", script]);
     }
 
+    // The python launcher name differs per platform; fall back to py -3 and python3 before reporting it missing.
     private async Task<string> RunPythonAsync(IReadOnlyList<string> args)
     {
-        try
+        foreach (var (executable, prefix) in new[] { ("python", Array.Empty<string>()), ("py", ["-3"]), ("python3", Array.Empty<string>()) })
         {
-            return await RunProcessAsync("python", Root, args, "python " + String.Join(" ", args));
+            List<string> arguments = [.. prefix, .. args];
+            try
+            {
+                return await ProcessRunner.RunAsync(executable, Root, arguments, executable + " " + String.Join(" ", arguments));
+            }
+            catch (Win32Exception) { }
         }
-        catch (Win32Exception)
-        {
-            var pyArgs = new List<string> { "-3" };
-            pyArgs.AddRange(args);
-            return await RunProcessAsync("py", Root, pyArgs, "py " + String.Join(" ", pyArgs));
-        }
+
+        return ToolchainCatalog.MissingToolMessage("python");
     }
 }

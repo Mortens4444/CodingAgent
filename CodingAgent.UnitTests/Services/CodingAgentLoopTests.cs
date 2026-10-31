@@ -176,4 +176,35 @@ public class CodingAgentLoopTests
         Assert.That(sw.ToString(), Does.Contain("[Tool result: check_for_missing_files]"));
         Assert.That(sw.ToString(), Does.Contain("Done after tool execution"));
     }
+
+    [Test]
+    public async Task RunAsync_WhenHistoryExceedsContext_TrimsOldestMessagesBeforeEachCall()
+    {
+        var loop = new CodingAgentLoop(_mockChatClient, _toolDispatcher, contextLength: 1000);
+        var messages = new List<ChatMessage>
+        {
+            new(ChatRole.System, "system"),
+            new(ChatRole.User, "task"),
+            new(ChatRole.Assistant, new string('a', 3000)),
+            new(ChatRole.User, "recent")
+        };
+
+        var sentCounts = new List<int>();
+        _mockChatClient.GetResponseAsync.Func(request =>
+        {
+            sentCounts.Add(request.messages.Count());
+            return Task.FromResult(new ChatResponse(new ChatMessage(ChatRole.Assistant, "{\"name\":\"finish\",\"arguments\":{}}")));
+        });
+
+        using var sw = new StringWriter();
+        Console.SetOut(sw);
+
+        await loop.RunAsync(_mockLanguageService, messages);
+
+        // The second call answers the host check that rejects a finish without any file change.
+        Assert.That(sentCounts, Is.EqualTo(new[] { 3, 5 }));
+        Assert.That(messages[0].Text, Is.EqualTo("system"));
+        Assert.That(messages[1].Text, Is.EqualTo("task"));
+        Assert.That(messages[2].Text, Is.EqualTo("recent"));
+    }
 }

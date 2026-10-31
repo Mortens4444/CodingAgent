@@ -2,18 +2,35 @@
 
 namespace CodingAgent.Services.LanguageServices;
 
-public class TypeScriptCodingLanguageService(string root) : LanguageService(root), ICodingLanguageService
+public class TypeScriptCodingLanguageService(string root, IProcessRunner? processRunner = null) : LanguageService(root, processRunner), ICodingLanguageService
 {
-    public Task<string> BuildAsync() =>
-        File.Exists(Path.Combine(Root, "tsconfig.json"))
-            ? RunProcessAsync("npx", Root, ["tsc"], "npx tsc")
-            : RunProcessAsync("npm", Root, ["run", "build"], "npm run build");
+    public Task<string> BuildAsync()
+    {
+        if (NodeProject.HasScript(Root, "build"))
+            return RunProcessAsync("npm", ["run", "build"]);
+
+        return HasFile("tsconfig.json") ? RunTscAsync([]) : ValidateSyntaxAsync();
+    }
 
     public Task<string> RunTestsAsync() =>
-        File.Exists(Path.Combine(Root, "package.json"))
-            ? RunProcessAsync("npm", Root, ["test"], "npm test")
-            : Task.FromResult("No test script configured.");
+        NodeProject.HasScript(Root, "test")
+            ? RunProcessAsync("npm", ["test"])
+            : RunProcessAsync("node", ["--test"]);
 
-    public Task<string> ValidateSyntaxAsync() =>
-        RunProcessAsync("npx", Root, ["tsc", "--noEmit"], "npx tsc --noEmit");
+    public async Task<string> ValidateSyntaxAsync()
+    {
+        if (HasFile("tsconfig.json"))
+            return await RunTscAsync(["--noEmit"]);
+
+        var sources = FindSourceFiles(".ts", ".tsx");
+        return sources.Count == 0
+            ? NoSourcesMessage("TypeScript")
+            : await RunTscAsync(["--noEmit", .. sources]);
+    }
+
+    // Plain "npx tsc" without a local install would fetch the unrelated "tsc" package, so name typescript explicitly.
+    private Task<string> RunTscAsync(string[] arguments) =>
+        NodeProject.HasLocalBinary(Root, "tsc")
+            ? RunProcessAsync("npx", ["tsc", .. arguments])
+            : RunProcessAsync("npx", ["--yes", "-p", "typescript", "tsc", .. arguments]);
 }

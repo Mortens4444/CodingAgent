@@ -70,22 +70,13 @@ public class ToolDispatcherTests
     }
 
     [Test]
-    public async Task ExecuteToolAsync_AliasedCommand_BuildSolution_ExecutesSuccessfully()
+    public async Task ExecuteToolAsync_AliasName_IsNotRoutedByDispatcher()
     {
-        // Arrange
-        string toolName = "build_solution";
+        // Aliases are resolved by ToolCatalog.NormalizeToolName before dispatch.
         var args = JsonDocument.Parse("{}").RootElement;
 
-        // Act & Assert
-        try
-        {
-            string result = await _toolDispatcher.ExecuteToolAsync(_mockCodingLanguageService, toolName, args);
-            Assert.That(result, Is.Not.Null);
-        }
-        catch (Exception)
-        {
-            // If it throws an execution/project error instead of unknown tool, routing succeeded
-            Assert.Pass("Command successfully routed.");
-        }
+        string result = await _toolDispatcher.ExecuteToolAsync(_mockCodingLanguageService, "build_solution", args);
+
+        Assert.That(result, Is.EqualTo("ERROR: Unknown tool 'build_solution'."));
     }
 }
